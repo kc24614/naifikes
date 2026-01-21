@@ -13,8 +13,16 @@
         body { background-color: #000; color: white; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .aspect-netflix { aspect-ratio: 16 / 9; }
         
-        /* --- 沉浸式 Hero 區域 --- */
-        #hero { position: relative; height: 75vh; width: 100%; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+        /* --- 修正後的 Hero 區域：高度縮減並調整對齊 --- */
+        #hero { 
+            position: relative; 
+            height: 68vh; /* 從 75vh 縮減至 68vh，讓內容更往上靠 */
+            width: 100%; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: flex-end; 
+        }
         
         #heroBlurBg {
             position: absolute; inset: 0;
@@ -24,7 +32,8 @@
         }
         
         #heroCoverWrapper {
-            position: relative; z-index: 5; width: 100%; padding: 0 25px; margin-bottom: 20px;
+            position: relative; z-index: 5; width: 100%; padding: 0 45px; /* 增加兩側 padding 縮小封面 */
+            margin-bottom: 15px;
             filter: drop-shadow(0 15px 35px rgba(0,0,0,0.9));
             transition: transform 0.1s ease-out, opacity 0.2s ease-out;
             will-change: transform, opacity;
@@ -33,7 +42,7 @@
 
         .hero-vignette {
             position: absolute; inset: 0; z-index: 3;
-            background: linear-gradient(0deg, #000 15%, rgba(0,0,0,0) 65%);
+            background: linear-gradient(0deg, #000 10%, rgba(0,0,0,0) 60%); /* 微調漸變起點 */
         }
 
         /* --- UI 其他組件 --- */
@@ -68,7 +77,7 @@
             <div id="heroBlurBg"></div>
             <div class="hero-vignette"></div>
             <div id="heroCoverWrapper"><img id="heroMainImg" src="" alt="Cover"></div>
-            <div class="relative z-10 px-8 pb-12 text-center">
+            <div class="relative z-10 px-8 pb-20 text-center">
                 <p id="heroActor" class="text-white text-[10px] font-black mb-2 opacity-60 tracking-[0.2em] uppercase"></p>
                 <h1 id="heroTitle" class="text-4xl font-black mb-8 italic tracking-tighter drop-shadow-2xl"></h1>
                 <div class="flex gap-4 justify-center">
@@ -77,7 +86,7 @@
                 </div>
             </div>
         </div>
-        <main id="mainRows" class="relative z-10 -mt-10 space-y-12 pb-16"></main>
+        <main id="mainRows" class="relative z-10 -mt-20 space-y-12 pb-16"></main>
     </div>
 
     <div id="filterPage" class="view-container bg-black pt-24 px-4">
@@ -241,8 +250,6 @@
             document.getElementById('detailCategoryLabel').innerText = currentAlbum.category;
             document.getElementById('detailActorLabel').querySelector('span').innerText=currentAlbum.actor;
             document.getElementById('detailPlayBtn').onclick=()=>playMedia(s);
-            
-            // 劇照展示：兩張併排且充滿寬度
             document.getElementById('episodeGrid').innerHTML = currentAlbum.contents.map((img, i) => `
                 <div class="relative aspect-netflix rounded-lg overflow-hidden bg-zinc-900 shadow-lg active:scale-95 transition-transform" onclick="openLightbox(${i})">
                     <img src="${img.url}" class="w-full h-full object-cover">
@@ -250,7 +257,6 @@
                         PIC ${i+1}
                     </div>
                 </div>`).join('');
-            
             const d = document.getElementById('detailView'); d.style.display='block'; setTimeout(()=>{d.style.transform='translateY(0)';},10); document.body.style.overflow='hidden';
         }
         
