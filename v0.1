@@ -127,11 +127,12 @@
                 <i class="fa-solid fa-play text-sm"></i> 播放
             </button>
 
-            <div>
-                <p id="detailActorLabel" class="text-[13px] text-zinc-500">演員：<span class="text-zinc-100 font-medium ml-1"></span></p>
-            </div>
+            <p id="detailActorLabel" class="text-[13px] text-zinc-500 leading-relaxed">演員：<span class="text-zinc-100 font-medium ml-1"></span></p>
 
-            <div id="episodeGrid" class="space-y-4 pt-4 border-t border-zinc-900 mt-2"></div>
+            <div class="border-t border-zinc-900 pt-5">
+                <h3 class="text-zinc-400 text-[11px] font-black uppercase tracking-[0.2em] mb-4">劇照展示</h3>
+                <div id="episodeGrid" class="grid grid-cols-2 gap-3"></div>
+            </div>
         </div>
     </div>
 
@@ -232,6 +233,7 @@
         }
 
         function playMedia(s) { currentAlbum=albums[s]; if(currentAlbum && currentAlbum.contents.length>0) openLightbox(0); }
+        
         function openDetail(s) {
             currentAlbum=albums[s];
             document.getElementById('detailBanner').style.backgroundImage=`url(${currentAlbum.cover?.url})`;
@@ -239,15 +241,19 @@
             document.getElementById('detailCategoryLabel').innerText = currentAlbum.category;
             document.getElementById('detailActorLabel').querySelector('span').innerText=currentAlbum.actor;
             document.getElementById('detailPlayBtn').onclick=()=>playMedia(s);
+            
+            // 劇照展示：兩張併排且充滿寬度
             document.getElementById('episodeGrid').innerHTML = currentAlbum.contents.map((img, i) => `
-                <div class="flex gap-5 items-center active:opacity-60 transition-opacity" onclick="openLightbox(${i})">
-                    <div class="w-36 aspect-netflix rounded-xl overflow-hidden bg-zinc-900 flex-shrink-0 shadow-lg">
-                        <img src="${img.url}" class="w-full h-full object-cover">
+                <div class="relative aspect-netflix rounded-lg overflow-hidden bg-zinc-900 shadow-lg active:scale-95 transition-transform" onclick="openLightbox(${i})">
+                    <img src="${img.url}" class="w-full h-full object-cover">
+                    <div class="absolute bottom-1.5 left-1.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[9px] font-black text-white/80 border border-white/5">
+                        PIC ${i+1}
                     </div>
-                    <div class="text-[14px] font-black tracking-tight">劇照展示 ${i+1}</div>
                 </div>`).join('');
+            
             const d = document.getElementById('detailView'); d.style.display='block'; setTimeout(()=>{d.style.transform='translateY(0)';},10); document.body.style.overflow='hidden';
         }
+        
         function closeDetail() { const d=document.getElementById('detailView'); d.style.transform='translateY(100%)'; setTimeout(()=>{d.style.display='none'; document.body.style.overflow='auto';},450); }
 
         let startY = 0; const dView = document.getElementById('detailView');
