@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>StreamVault Ultra Pro View</title>
+    <title>StreamVault Ultra Final V6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -11,160 +11,154 @@
         .page { display: none; height: 100vh; overflow-y: auto; padding-bottom: 100px; }
         .page.active { display: block; }
         
-        /* 底部導航 */
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 70px; background: rgba(10,10,10,0.98); backdrop-filter: blur(25px); border-top: 1px solid #222; z-index: 500; padding-bottom: env(safe-area-inset-bottom); display: flex; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 70px; background: rgba(0,0,0,0.95); backdrop-filter: blur(25px); border-top: 1px solid #222; z-index: 1000; padding-bottom: env(safe-area-inset-bottom); display: flex; }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #555; font-size: 10px; font-weight: bold; }
         .nav-item.active { color: white; }
 
-        /* 詳情頁 (Netflix 樣式) */
-        #detailView { 
-            position: fixed; inset: 0; z-index: 600; display: none; background: #000; 
-            overflow-y: auto; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.1, 0.7, 0.1, 1);
-            touch-action: pan-y; 
-        }
-        #detailHero { width: 100%; aspect-ratio: 16 / 10; background-size: cover; background-position: center; position: relative; }
-        #detailHero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 60%, #000 100%); }
+        #heroBlurBg { position: absolute; inset: 0; background-size: cover; background-position: center; background-repeat: no-repeat; filter: blur(50px) brightness(0.4); transform: scale(1.2); }
 
-        /* 篩選器折疊 */
-        .filter-content { display: none; padding: 10px 0; flex-wrap: wrap; gap: 8px; }
-        .filter-content.open { display: flex; }
-
-        /* 圖片放大層 */
-        #storyOverlay { position: fixed; inset: 0; z-index: 2000; background: #000; display: none; overflow: auto; align-items: center; }
+        /* 詳情內頁 */
+        #detailView { position: fixed; inset: 0; z-index: 1100; display: none; background: #000; overflow-y: auto; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.1, 0.7, 0.1, 1); }
+        #detailHero { width: 100%; aspect-ratio: 16 / 10; background-size: cover; background-position: center; background-repeat: no-repeat; position: relative; }
+        #detailHero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, #000 100%); }
         
-        /* 首頁推薦 */
-        #hero { position: relative; height: 70vh; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; overflow: hidden; }
-        #heroBlurBg { position: absolute; inset: 0; background-size: cover; background-position: center; filter: blur(40px) brightness(0.3); transform: scale(1.1); }
-        #heroMainImg { width: 75%; max-width: 280px; border-radius: 12px; z-index: 10; box-shadow: 0 15px 40px rgba(0,0,0,0.8); }
+        /* 燈箱 Story 模式 */
+        #lightbox { position: fixed; inset: 0; z-index: 2000; background: #000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; }
+        #lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .lb-zone { position: absolute; top: 0; height: 100%; z-index: 2010; }
+        .lb-prev { left: 0; width: 30%; }
+        .lb-close { left: 30%; width: 40%; }
+        .lb-next { right: 0; width: 30%; }
 
+        /* TikTok 隨機頁 */
+        #randomPage { scroll-snap-type: y mandatory; overflow-y: scroll; height: 100vh; padding-bottom: 0; }
+        .tiktok-card { height: 100vh; width: 100%; scroll-snap-align: start; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .tiktok-bg { position: absolute; inset: 0; background-size: cover; background-position: center; background-repeat: no-repeat; filter: blur(40px) brightness(0.3); transform: scale(1.1); }
+        .story-progress { position: absolute; top: 15px; left: 10px; right: 10px; display: flex; gap: 4px; z-index: 50; }
+        .story-bar { height: 2px; flex: 1; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+        .story-fill { height: 100%; background: #fff; width: 0%; transition: width 0.2s; }
+
+        /* 折疊選單 */
+        .filter-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #111; cursor: pointer; }
+        .filter-content { display: none; flex-wrap: wrap; gap: 8px; padding: 15px 0; }
+        .filter-content.open { display: flex; }
+        .chip { padding: 6px 15px; background: #111; border-radius: 20px; font-size: 11px; border: 1px solid #222; color: #777; }
+        .chip.active { background: #fff; color: #000; border-color: #fff; }
+
+        .row-container { display: flex; overflow-x: auto; gap: 12px; padding: 0 20px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="storyOverlay" onclick="closeStory()">
-        <img id="storyImg" src="" class="w-full" onclick="handleStoryClick(event); event.stopPropagation();">
-        <div id="storyProgress" class="absolute top-4 left-0 w-full flex gap-1 px-2 pointer-events-none"></div>
+    <div id="lightbox">
+        <div class="story-progress" id="lbProgress"></div>
+        <div class="lb-zone lb-prev" onclick="prevLbImage()"></div>
+        <div class="lb-zone lb-close" onclick="closeLightbox()"></div>
+        <div class="lb-zone lb-next" onclick="nextLbImage()"></div>
+        <img id="lightboxImg" src="">
     </div>
 
     <div id="homePage" class="page active">
-        <div id="hero">
+        <div id="hero" class="relative h-[75vh] flex flex-col justify-end items-center overflow-hidden">
             <div id="heroBlurBg"></div>
-            <img id="heroMainImg" src="" class="mb-8">
-            <div class="relative z-10 text-center pb-12 w-full px-6">
-                <h1 id="heroTitle" class="text-3xl font-black italic mb-6 tracking-tighter"></h1>
-                <div class="flex gap-3 justify-center">
-                    <button id="heroPlayBtn" class="bg-white text-black px-12 py-3 rounded font-bold text-sm flex-1 max-w-[150px]">播放</button>
-                    <button id="heroInfoBtn" class="bg-zinc-800 text-white px-8 py-3 rounded font-bold text-sm flex-1 max-w-[150px]">詳情</button>
-                </div>
+            <img id="heroMainImg" src="" class="relative z-10 w-3/4 max-w-[260px] rounded-xl shadow-2xl mb-10">
+            <div class="relative z-10 text-center pb-14 w-full px-6">
+                <h1 id="heroTitle" class="text-3xl font-black italic mb-8 drop-shadow-2xl"></h1>
+                <button id="heroInfoBtn" class="bg-white text-black px-16 py-3.5 rounded-full font-bold text-sm">查看詳情</button>
             </div>
         </div>
-        <main id="mainRows" class="space-y-12 pt-4"></main>
+        <main id="mainRows" class="space-y-12 pt-8 pb-32"></main>
     </div>
+
+    <div id="randomPage" class="page no-scrollbar"></div>
 
     <div id="filterPage" class="page pt-20 px-6">
-        <h2 class="text-2xl font-black mb-8 italic">FILTER</h2>
-        <div class="space-y-4">
-            <div class="border-b border-zinc-900">
-                <button onclick="toggleFilterList('actorList')" class="w-full flex justify-between py-4 font-bold text-zinc-500 text-xs tracking-widest">ACTORS <i class="fa-solid fa-chevron-down"></i></button>
-                <div id="actorList" class="filter-content"></div>
+        <h2 class="text-2xl font-black italic mb-6">EXPLORE</h2>
+        
+        <div class="mb-4">
+            <div class="filter-header" onclick="toggleCollapse('actorList')">
+                <span class="text-xs font-bold text-zinc-500 uppercase tracking-widest">Actors</span>
+                <i class="fa-solid fa-chevron-down text-xs text-zinc-700"></i>
             </div>
-            <div class="border-b border-zinc-900">
-                <button onclick="toggleFilterList('tagList')" class="w-full flex justify-between py-4 font-bold text-zinc-500 text-xs tracking-widest">TAGS <i class="fa-solid fa-chevron-down"></i></button>
-                <div id="tagList" class="filter-content"></div>
-            </div>
+            <div id="actorList" class="filter-content"></div>
         </div>
-        <div id="filterResults" class="grid grid-cols-2 gap-3 mt-8 pb-20"></div>
-    </div>
 
-    <div id="favPage" class="page pt-20 px-6">
-        <h2 class="text-2xl font-black mb-6 italic text-center">FAVORITES</h2>
-        <div id="favResults" class="grid grid-cols-2 gap-3"></div>
+        <div class="mb-8">
+            <div class="filter-header" onclick="toggleCollapse('tagList')">
+                <span class="text-xs font-bold text-zinc-500 uppercase tracking-widest">Tags</span>
+                <i class="fa-solid fa-chevron-down text-xs text-zinc-700"></i>
+            </div>
+            <div id="tagList" class="filter-content"></div>
+        </div>
+
+        <div id="filterResults" class="grid grid-cols-2 gap-3 pb-40"></div>
     </div>
 
     <div id="userPage" class="page pt-20 px-8">
         <div class="space-y-4">
-            <button onclick="document.getElementById('txtInput').click()" class="w-full py-5 bg-zinc-900 rounded-xl font-bold border border-white/5">1. 載入路徑表 (.txt)</button>
+            <button onclick="document.getElementById('txtInput').click()" class="w-full py-5 bg-zinc-900 rounded-2xl font-bold">1. 載入路徑表 (.txt)</button>
             <input type="file" id="txtInput" accept=".txt" class="hidden">
-            <button onclick="document.getElementById('folderInput').click()" class="w-full py-5 bg-blue-700 rounded-xl font-bold">2. 選擇媒體資料夾</button>
+            <button onclick="document.getElementById('folderInput').click()" class="w-full py-5 bg-blue-700 rounded-2xl font-bold">2. 選擇資料夾</button>
             <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden">
-            <button onclick="handleClearDatabase()" class="w-full text-zinc-800 text-[10px] font-black pt-20 tracking-[0.3em]">RESET DATABASE</button>
+            <button onclick="resetDB()" class="w-full text-zinc-900 text-[10px] font-black pt-32 tracking-widest text-center">RESET ALL DATA</button>
         </div>
     </div>
 
     <div id="detailView">
-        <div id="detailHero"></div> <button onclick="closeDetail()" class="absolute top-8 right-6 bg-black/50 w-10 h-10 rounded-full z-[700] flex items-center justify-center">✕</button>
-        
-        <div class="p-6 relative">
-            <h2 id="detailTitle" class="text-4xl font-black italic mb-1 tracking-tighter"></h2>
+        <div id="detailHero"></div>
+        <button onclick="closeDetail()" class="fixed top-8 right-6 bg-black/60 w-10 h-10 rounded-full z-[1200] flex items-center justify-center backdrop-blur-md">✕</button>
+        <div class="p-6">
+            <h2 id="detailTitle" class="text-4xl font-black italic mb-2 tracking-tighter"></h2>
             <p id="detailActor" class="text-blue-500 font-bold mb-6 text-sm"></p>
-            
-            <div class="flex gap-3 mb-8">
-                <a id="detailPlayBtn" target="_blank" class="flex-grow bg-white text-black py-3.5 rounded font-black text-center text-sm">STREAM</a>
-                <button id="detailFavBtn" onclick="toggleFavorite()" class="w-16 bg-zinc-900 rounded flex items-center justify-center text-xl"><i class="fa-solid fa-star"></i></button>
-            </div>
-
+            <a id="detailPlayLink" target="_blank" class="block w-full bg-white text-black py-4 rounded-xl font-black text-center text-sm tracking-widest mb-8">GOOGLE SEARCH</a>
             <div id="detailTags" class="flex flex-wrap gap-2 mb-10"></div>
-            <div id="episodeGrid" class="grid grid-cols-2 gap-2.5 pb-32"></div>
+            <div id="episodeGrid" class="grid grid-cols-2 gap-2.5 pb-40"></div>
         </div>
     </div>
 
     <nav class="bottom-nav">
-        <div onclick="switchPage('home')" class="nav-item active" id="navHome"><i class="fa-solid fa-house mb-1 text-lg"></i><span>首頁</span></div>
-        <div onclick="switchPage('filter')" class="nav-item" id="navFilter"><i class="fa-solid fa-magnifying-glass mb-1 text-lg"></i><span>篩選</span></div>
-        <div onclick="switchPage('fav')" class="nav-item" id="navFav"><i class="fa-solid fa-star mb-1 text-lg"></i><span>收藏</span></div>
-        <div onclick="switchPage('user')" class="nav-item" id="navUser"><i class="fa-solid fa-database mb-1 text-lg"></i><span>資料庫</span></div>
+        <div onclick="switchPage('home')" class="nav-item active" id="navHome"><i class="fa-solid fa-house mb-1"></i><span>首頁</span></div>
+        <div onclick="switchPage('random')" class="nav-item" id="navRandom"><i class="fa-solid fa-play-circle mb-1"></i><span>隨機</span></div>
+        <div onclick="switchPage('filter')" class="nav-item" id="navFilter"><i class="fa-solid fa-magnifying-glass mb-1"></i><span>搜尋</span></div>
+        <div onclick="switchPage('user')" class="nav-item" id="navUser"><i class="fa-solid fa-database mb-1"></i><span>資料</span></div>
     </nav>
 
     <script>
-        let albums = {}, db, pathTable = [], currentAlbum = null, storyIndex = 0, currentGallery = [];
-        let activeFilter = { actor: null, tag: null };
-        const STORE_NAME = "albums", DB_NAME = "StreamVault_V6";
+        let albums = {}, db, pathTable = [], randomStates = {};
+        let lbCurrentList = [], lbIndex = 0;
+        const DB_NAME = "StreamVault_V6", STORE_NAME = "albums";
 
-        // --- 手勢下滑退出實作 ---
-        let touchStartY = 0;
-        const detailView = document.getElementById('detailView');
-
-        detailView.addEventListener('touchstart', e => {
-            if (detailView.scrollTop <= 0) touchStartY = e.touches[0].clientY;
-            else touchStartY = null;
-        }, {passive: true});
-
-        detailView.addEventListener('touchmove', e => {
-            if (touchStartY === null) return;
-            let diff = e.touches[0].clientY - touchStartY;
-            if (diff > 0) {
-                e.preventDefault();
-                detailView.style.transition = 'none';
-                detailView.style.transform = `translateY(${diff}px)`;
-            }
-        }, {passive: false});
-
-        detailView.addEventListener('touchend', e => {
-            if (touchStartY === null) return;
-            let diff = e.changedTouches[0].clientY - touchStartY;
-            if (diff > 150) closeDetail();
-            else {
-                detailView.style.transition = 'transform 0.3s cubic-bezier(0.1, 0.7, 0.1, 1)';
-                detailView.style.transform = 'translateY(0)';
-            }
-        });
-
-        // --- IndexedDB ---
-        const req = indexedDB.open(DB_NAME, 1);
-        req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME, {keyPath:"id"});
-        req.onsuccess = e => { db = e.target.result; loadFromDB(); };
-
-        async function loadFromDB() {
-            const tx = db.transaction(STORE_NAME, "readonly");
-            const res = await new Promise(r => tx.objectStore(STORE_NAME).get("main_data").onsuccess = e => r(e.target.result));
-            if (res) { albums = res.content; initApp(); }
+        // 燈箱控制 (中區關閉，左右切換)
+        function openLightbox(url, list) {
+            lbCurrentList = list;
+            lbIndex = list.findIndex(img => img.url === url);
+            updateLightboxUI();
+            const lb = document.getElementById('lightbox');
+            lb.style.display = 'flex';
+            setTimeout(() => lb.style.opacity = 1, 10);
+        }
+        function nextLbImage() { lbIndex = (lbIndex + 1) % lbCurrentList.length; updateLightboxUI(); }
+        function prevLbImage() { lbIndex = (lbIndex - 1 + lbCurrentList.length) % lbCurrentList.length; updateLightboxUI(); }
+        function updateLightboxUI() {
+            document.getElementById('lightboxImg').src = lbCurrentList[lbIndex].url;
+            document.getElementById('lbProgress').innerHTML = lbCurrentList.map((_, i) => `
+                <div class="story-bar"><div class="story-fill" style="width: ${i <= lbIndex ? '100%' : '0%'}"></div></div>
+            `).join('');
+        }
+        function closeLightbox() {
+            const lb = document.getElementById('lightbox');
+            lb.style.opacity = 0; setTimeout(() => lb.style.display = 'none', 300);
         }
 
-        function initApp() {
-            renderHome();
-            renderFavorites();
-            renderFilterResults();
+        // 初始化
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME, {keyPath:"id"});
+        req.onsuccess = e => { db = e.target.result; loadDB(); };
+        async function loadDB() {
+            const tx = db.transaction(STORE_NAME, "readonly");
+            const res = await new Promise(r => tx.objectStore(STORE_NAME).get("main").onsuccess = e => r(e.target.result));
+            if (res) { albums = res.data; renderHome(); }
         }
 
         function switchPage(p) {
@@ -172,141 +166,122 @@
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             document.getElementById(p + 'Page').classList.add('active');
             document.getElementById('nav' + p.charAt(0).toUpperCase() + p.slice(1)).classList.add('active');
+            if(p === 'random') renderRandom();
             if(p === 'filter') renderFilterPanels();
         }
 
-        function toggleFilterList(id) {
-            document.getElementById(id).classList.toggle('open');
-        }
-
-        function renderFilterPanels() {
-            const actors = [...new Set(Object.values(albums).map(a => a.actor))];
-            const tags = [...new Set(Object.values(albums).flatMap(a => a.tags))];
-            document.getElementById('actorList').innerHTML = actors.map(a => `<button onclick="setFilter('actor', '${a}')" class="px-4 py-2 rounded-full border ${activeFilter.actor===a?'bg-white text-black':'border-zinc-800 text-zinc-500'} text-xs">${a}</button>`).join('');
-            document.getElementById('tagList').innerHTML = tags.map(t => `<button onclick="setFilter('tag', '${t}')" class="px-4 py-2 rounded-full border ${activeFilter.tag===t?'bg-white text-black':'border-zinc-800 text-zinc-500'} text-xs"># ${t}</button>`).join('');
-        }
-
-        function setFilter(type, val) {
-            activeFilter[type] = activeFilter[type] === val ? null : val;
-            renderFilterPanels();
-            renderFilterResults();
-        }
-
-        function renderFilterResults() {
-            let list = Object.values(albums);
-            if (activeFilter.actor) list = list.filter(a => a.actor === activeFilter.actor);
-            if (activeFilter.tag) list = list.filter(a => a.tags.includes(activeFilter.tag));
-            document.getElementById('filterResults').innerHTML = list.map(x => `<div onclick="openDetail('${x.serial}')" class="aspect-video bg-zinc-900 rounded overflow-hidden"><img src="${x.cover?.url}" class="w-full h-full object-cover"></div>`).join('');
-        }
-
-        function openDetail(s) {
-            currentAlbum = albums[s];
-            const dv = document.getElementById('detailView');
-            document.getElementById('detailHero').style.backgroundImage = `url(${currentAlbum.cover?.url})`;
-            document.getElementById('detailTitle').innerText = currentAlbum.serial;
-            document.getElementById('detailActor').innerText = currentAlbum.actor;
-            document.getElementById('detailTags').innerHTML = currentAlbum.tags.map(t => `<span class="bg-zinc-900 px-3 py-1 rounded text-[10px] text-zinc-400 border border-white/5"># ${t}</span>`).join('');
-            document.getElementById('detailPlayBtn').href = `https://www.google.com/search?q=${currentAlbum.serial}+missav`;
-            
-            // 劇照列表 (排除封面)
-            document.getElementById('episodeGrid').innerHTML = currentAlbum.contents.map((img, i) => `
-                <div class="aspect-video bg-zinc-900 rounded overflow-hidden" onclick="openStory(${i}, ${JSON.stringify(currentAlbum.contents).replace(/"/g, '&quot;')})">
-                    <img src="${img.url}" class="w-full h-full object-cover">
-                </div>
-            `).join('');
-            
-            dv.style.display = 'block';
-            setTimeout(() => { dv.style.transform = 'translateY(0)'; }, 10);
-            updateFavBtnUI();
-        }
-
-        function closeDetail() {
-            detailView.style.transform = 'translateY(100%)';
-            setTimeout(() => { detailView.style.display = 'none'; }, 400);
-        }
-
-        function renderHome() {
-            const main = document.getElementById('mainRows'); main.innerHTML = '';
-            const keys = Object.keys(albums);
-            if(!keys.length) return;
-            
-            const r = albums[keys[Math.floor(Math.random()*keys.length)]];
-            document.getElementById('heroBlurBg').style.backgroundImage = `url(${r.cover?.url})`;
-            document.getElementById('heroMainImg').src = r.cover?.url;
-            document.getElementById('heroTitle').innerText = r.serial;
-            document.getElementById('heroInfoBtn').onclick = () => openDetail(r.serial);
-
-            const cats = {};
-            Object.values(albums).forEach(v => { if(!cats[v.category]) cats[v.category] = []; cats[v.category].push(v); });
-            for(let c in cats) {
-                const sec = document.createElement('section');
-                sec.innerHTML = `<h2 class="px-6 text-[11px] font-black text-zinc-600 mb-4 tracking-widest uppercase">${c}</h2>
-                    <div class="flex overflow-x-auto gap-3 px-6 no-scrollbar">${cats[c].map(x => `<div onclick="openDetail('${x.serial}')" class="flex-shrink-0 w-44 aspect-video bg-zinc-900 rounded overflow-hidden border border-white/5 shadow-xl"><img src="${x.cover?.url}" class="w-full h-full object-cover"></div>`).join('')}</div>`;
-                main.appendChild(sec);
-            }
-        }
-
-        function openStory(index, imgs) {
-            currentGallery = imgs; storyIndex = index;
-            document.getElementById('storyOverlay').style.display = 'flex';
-            updateStory();
-        }
-
-        function closeStory() { document.getElementById('storyOverlay').style.display = 'none'; }
-
-        function handleStoryClick(e) {
-            const w = window.innerWidth;
-            if (e.clientX < w * 0.3) { if(storyIndex > 0) { storyIndex--; updateStory(); } }
-            else if (e.clientX > w * 0.7) { if(storyIndex < currentGallery.length-1) { storyIndex++; updateStory(); } }
-            else { closeStory(); }
-        }
-
-        function updateStory() {
-            document.getElementById('storyImg').src = currentGallery[storyIndex].url;
-            document.getElementById('storyProgress').innerHTML = currentGallery.map((_, i) => `<div class="h-1 flex-grow rounded-full ${i <= storyIndex ? 'bg-white' : 'bg-white/20'}"></div>`).join('');
-        }
-
-        function toggleFavorite() {
-            currentAlbum.isFavorite = !currentAlbum.isFavorite;
-            saveToDB(); updateFavBtnUI(); renderFavorites();
-        }
-
-        function updateFavBtnUI() {
-            const btn = document.getElementById('detailFavBtn');
-            btn.innerHTML = `<i class="fa-solid fa-star ${currentAlbum.isFavorite ? 'text-yellow-400' : 'text-zinc-700'}"></i>`;
-        }
-
-        function renderFavorites() {
-            const favs = Object.values(albums).filter(a => a.isFavorite);
-            document.getElementById('favResults').innerHTML = favs.map(x => `<div onclick="openDetail('${x.serial}')" class="aspect-video bg-zinc-900 rounded overflow-hidden"><img src="${x.cover?.url}" class="w-full h-full object-cover"></div>`).join('');
-        }
-
+        // 匯入邏輯
         document.getElementById('txtInput').onchange = async e => {
             const text = await e.target.files[0].text();
             pathTable = text.split('\n').map(l => {
                 const p = l.split('|').map(s => s.trim());
                 return p.length >= 3 ? { serial: p[0], actor: p[1], tags: p[2].split(',').map(t => t.trim()) } : null;
             }).filter(Boolean);
+            alert("TXT 載入成功");
         };
-
         document.getElementById('folderInput').onchange = async e => {
-            const files = e.target.files;
-            const temp = {};
+            const files = e.target.files; const temp = {};
             for (let f of files) {
                 if (!f.type.startsWith('image/')) continue;
-                const folderName = f.webkitRelativePath.split('/').slice(-2, -1)[0];
-                const meta = pathTable.find(m => m.serial === folderName);
+                const folder = f.webkitRelativePath.split('/').slice(-2, -1)[0];
+                const meta = pathTable.find(m => m.serial === folder);
                 if (!meta) continue;
-                if (!temp[folderName]) temp[folderName] = { ...meta, category: meta.tags[0], cover: null, contents: [], isFavorite: false };
-                const url = await new Promise(r => { const rd = new FileReader(); rd.onload = e => r(e.target.result); rd.readAsDataURL(f); });
-                if (f.name.includes('封面')) temp[folderName].cover = {url};
-                else temp[folderName].contents.push({url});
+                if (!temp[folder]) temp[folder] = { ...meta, cat: meta.tags[0], cover: null, contents: [] };
+                const url = await new Promise(r => { const rd = new FileReader(); rd.onload = ev => r(ev.target.result); rd.readAsDataURL(f); });
+                if (f.name.includes('封面')) temp[folder].cover = {url}; else temp[folder].contents.push({url});
             }
-            albums = temp; saveToDB(); initApp(); switchPage('home');
+            albums = temp;
+            db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).put({id:"main", data:albums});
+            renderHome(); switchPage('home');
         };
 
-        function saveToDB() { db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).put({id:"main_data", content:albums}); }
-        function handleClearDatabase() { if(confirm("確定重設系統？")) { indexedDB.deleteDatabase(DB_NAME); location.reload(); } }
+        // 篩選頁折疊功能
+        function toggleCollapse(id) { document.getElementById(id).classList.toggle('open'); }
+        function renderFilterPanels() {
+            const list = Object.values(albums);
+            const actors = [...new Set(list.map(a => a.actor))];
+            const tags = [...new Set(list.flatMap(a => a.tags))];
+            document.getElementById('actorList').innerHTML = actors.map(a => `<div class="chip" onclick="filterBy('actor', '${a}', this)">${a}</div>`).join('');
+            document.getElementById('tagList').innerHTML = tags.map(t => `<div class="chip" onclick="filterBy('tag', '${t}', this)"># ${t}</div>`).join('');
+            if(list.length > 0) filterBy('all', '', null);
+        }
+        function filterBy(type, val, el) {
+            if(el) {
+                document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+                el.classList.add('active');
+            }
+            const list = Object.values(albums);
+            const res = type === 'all' ? list : list.filter(i => type === 'actor' ? i.actor === val : i.tags.includes(val));
+            document.getElementById('filterResults').innerHTML = res.map(x => `
+                <div onclick="openDetail('${x.serial}')" class="aspect-video bg-zinc-900 rounded-lg overflow-hidden"><img src="${x.cover?.url}" class="w-full h-full object-cover"></div>
+            `).join('');
+        }
+
+        // 首頁
+        function renderHome() {
+            const list = Object.values(albums); if(!list.length) return;
+            const r = list[Math.floor(Math.random()*list.length)];
+            document.getElementById('heroBlurBg').style.backgroundImage = `url(${r.cover?.url})`;
+            document.getElementById('heroMainImg').src = r.cover?.url;
+            document.getElementById('heroTitle').innerText = r.serial;
+            document.getElementById('heroInfoBtn').onclick = () => openDetail(r.serial);
+            const cats = {};
+            list.forEach(v => { (cats[v.cat] = cats[v.cat] || []).push(v); });
+            document.getElementById('mainRows').innerHTML = Object.keys(cats).map(c => `
+                <section><h2 class="px-6 text-[10px] font-black text-zinc-600 mb-4 tracking-widest uppercase">${c}</h2>
+                <div class="row-container no-scrollbar">${cats[c].map(x => `<div onclick="openDetail('${x.serial}')" class="flex-shrink-0 w-40 aspect-video bg-zinc-900 rounded-lg overflow-hidden"><img src="${x.cover?.url}" class="w-full h-full object-cover"></div>`).join('')}</div></section>
+            `).join('');
+        }
+
+        // 隨機選片 (不含封面，第一張隨機)
+        function renderRandom() {
+            const list = Object.values(albums).sort(() => Math.random() - 0.5);
+            document.getElementById('randomPage').innerHTML = list.map(item => {
+                const photos = [...item.contents].sort(() => Math.random() - 0.5);
+                if(photos.length === 0 && item.cover) photos.push(item.cover);
+                randomStates[item.serial] = { index: 0, photos: photos };
+                return `
+                <div class="tiktok-card">
+                    <div class="tiktok-bg" id="rbg-${item.serial}" style="background-image: url(${photos[0].url})"></div>
+                    <div class="story-progress">${photos.map((_, i) => `<div class="story-bar"><div class="story-fill" id="pfill-${item.serial}-${i}"></div></div>`).join('')}</div>
+                    <img src="${photos[0].url}" id="rimg-${item.serial}" class="relative z-10 max-h-full max-w-full object-contain" onclick="clickStory(event, '${item.serial}')">
+                    <div class="absolute bottom-28 left-6 right-6 z-20 pointer-events-none text-center">
+                        <h3 class="text-2xl font-black italic mb-3 drop-shadow-2xl">${item.serial}</h3>
+                        <button onclick="openDetail('${item.serial}')" class="bg-white/10 backdrop-blur-md border border-white/20 px-8 py-3 rounded-full text-xs font-bold pointer-events-auto">查看詳情</button>
+                    </div>
+                </div>`;
+            }).join('');
+            list.forEach(item => updateStoryUI(item.serial));
+        }
+        function clickStory(e, s) {
+            const state = randomStates[s];
+            if (e.clientX < window.innerWidth * 0.3) { if(state.index > 0) state.index--; }
+            else { if(state.index < state.photos.length - 1) state.index++; }
+            updateStoryUI(s);
+        }
+        function updateStoryUI(s) {
+            const state = randomStates[s]; if(!state) return;
+            document.getElementById(`rimg-${s}`).src = state.photos[state.index].url;
+            document.getElementById(`rbg-${s}`).style.backgroundImage = `url(${state.photos[state.index].url})`;
+            state.photos.forEach((_, i) => { const f = document.getElementById(`pfill-${s}-${i}`); if(f) f.style.width = i <= state.index ? '100%' : '0%'; });
+        }
+
+        // 詳情頁
+        function openDetail(s) {
+            const item = albums[s];
+            document.getElementById('detailHero').style.backgroundImage = `url(${item.cover?.url})`;
+            document.getElementById('detailTitle').innerText = item.serial;
+            document.getElementById('detailActor').innerText = item.actor;
+            document.getElementById('detailPlayLink').href = `https://www.google.com/search?q=${encodeURIComponent(item.serial + ' missav')}`;
+            document.getElementById('detailTags').innerHTML = item.tags.map(t => `<span class="bg-zinc-900 px-3 py-1.5 rounded text-[10px] text-zinc-400"># ${t}</span>`).join('');
+            document.getElementById('episodeGrid').innerHTML = item.contents.map(img => `
+                <div onclick="openLightbox('${img.url}', ${JSON.stringify(item.contents).replace(/"/g, '&quot;')})" class="aspect-video bg-zinc-900 rounded-lg overflow-hidden active:scale-95 transition-transform"><img src="${img.url}" class="w-full h-full object-cover"></div>
+            `).join('');
+            const dv = document.getElementById('detailView');
+            dv.style.display = 'block'; setTimeout(() => dv.style.transform = 'translateY(0)', 10);
+        }
+        function closeDetail() { const dv = document.getElementById('detailView'); dv.style.transform = 'translateY(100%)'; setTimeout(() => dv.style.display = 'none', 400); }
+        function resetDB() { if(confirm("確定重置？")) { indexedDB.deleteDatabase(DB_NAME); location.reload(); } }
     </script>
 </body>
 </html>
