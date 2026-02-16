@@ -3,317 +3,310 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>StreamVault Ultra</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>StreamVault Ultra Pro View</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <style>
-        body { background-color: #000; color: white; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
-        .aspect-netflix { aspect-ratio: 16 / 9; }
+        body { background-color: #000; color: white; font-family: system-ui; -webkit-tap-highlight-color: transparent; margin: 0; overflow: hidden; }
+        .page { display: none; height: 100vh; overflow-y: auto; padding-bottom: 100px; }
+        .page.active { display: block; }
         
-        #hero { position: relative; height: 68vh; width: 100%; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
-        #heroBlurBg { position: absolute; inset: 0; background-size: cover; background-position: right center; filter: blur(45px) brightness(0.5); transform: scale(1.3); z-index: 1; will-change: transform; }
-        #heroCoverWrapper { position: relative; z-index: 5; width: 100%; padding: 0 45px; margin-bottom: 15px; filter: drop-shadow(0 15px 35px rgba(0,0,0,0.9)); transition: transform 0.1s ease-out, opacity 0.2s ease-out; }
-        #heroMainImg { width: 100%; border-radius: 12px; object-fit: contain; border: 1px solid rgba(255,255,255,0.1); }
-        .hero-vignette { position: absolute; inset: 0; z-index: 3; background: linear-gradient(0deg, #000 10%, rgba(0,0,0,0) 60%); }
+        /* 底部導航 */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 70px; background: rgba(10,10,10,0.98); backdrop-filter: blur(25px); border-top: 1px solid #222; z-index: 500; padding-bottom: env(safe-area-inset-bottom); display: flex; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #555; font-size: 10px; font-weight: bold; }
+        .nav-item.active { color: white; }
 
-        .row-container { display: flex; overflow-x: auto; gap: 14px; padding: 0 15px; scrollbar-width: none; }
-        .row-container::-webkit-scrollbar { display: none; }
-        .bottom-nav { background: rgba(15, 15, 15, 0.9); backdrop-filter: blur(25px); border-top: 1px solid #222; padding-bottom: env(safe-area-inset-bottom); }
+        /* 詳情頁 (Netflix 樣式) */
+        #detailView { 
+            position: fixed; inset: 0; z-index: 600; display: none; background: #000; 
+            overflow-y: auto; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.1, 0.7, 0.1, 1);
+            touch-action: pan-y; 
+        }
+        #detailHero { width: 100%; aspect-ratio: 16 / 10; background-size: cover; background-position: center; position: relative; }
+        #detailHero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 60%, #000 100%); }
 
-        #detailView { position: fixed; inset: 0; z-index: 200; display: none; background: #000; overflow-y: auto; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1); will-change: transform; }
+        /* 篩選器折疊 */
+        .filter-content { display: none; padding: 10px 0; flex-wrap: wrap; gap: 8px; }
+        .filter-content.open { display: flex; }
+
+        /* 圖片放大層 */
+        #storyOverlay { position: fixed; inset: 0; z-index: 2000; background: #000; display: none; overflow: auto; align-items: center; }
         
-        #filterContent { transition: max-height 0.4s ease-out, opacity 0.3s ease; overflow: hidden; }
-        .filter-chip { padding: 6px 14px; border-radius: 6px; border: 1px solid #222; font-size: 12px; font-weight: bold; background: #111; color: #666; margin: 3px; }
-        .filter-chip.active { background: white; color: black; border-color: white; transform: scale(1.05); }
+        /* 首頁推薦 */
+        #hero { position: relative; height: 70vh; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; overflow: hidden; }
+        #heroBlurBg { position: absolute; inset: 0; background-size: cover; background-position: center; filter: blur(40px) brightness(0.3); transform: scale(1.1); }
+        #heroMainImg { width: 75%; max-width: 280px; border-radius: 12px; z-index: 10; box-shadow: 0 15px 40px rgba(0,0,0,0.8); }
 
-        #lightbox { display: none; position: fixed; inset: 0; background: #000; z-index: 1000; align-items: center; justify-content: center; }
-        #lightbox.active { display: flex; }
-        .view-container { display: none; min-height: 100vh; }
-        .view-container.active { display: block; }
-        
-        /* 播放連結樣式，移除 A 標籤預設顏色 */
-        #detailPlayBtn { text-decoration: none; -webkit-touch-callout: default; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="pb-24">
+<body>
 
-    <div id="homePage" class="view-container active">
+    <div id="storyOverlay" onclick="closeStory()">
+        <img id="storyImg" src="" class="w-full" onclick="handleStoryClick(event); event.stopPropagation();">
+        <div id="storyProgress" class="absolute top-4 left-0 w-full flex gap-1 px-2 pointer-events-none"></div>
+    </div>
+
+    <div id="homePage" class="page active">
         <div id="hero">
             <div id="heroBlurBg"></div>
-            <div class="hero-vignette"></div>
-            <div id="heroCoverWrapper"><img id="heroMainImg" src="" alt="Cover"></div>
-            <div class="relative z-10 px-8 pb-20 text-center">
-                <p id="heroActor" class="text-white text-[10px] font-black mb-2 opacity-60 tracking-[0.2em] uppercase"></p>
-                <h1 id="heroTitle" class="text-4xl font-black mb-8 italic tracking-tighter leading-tight"></h1>
-                <div class="flex gap-4 justify-center">
-                    <a id="heroPlayBtn" target="_blank" class="bg-white text-black px-12 py-3 rounded-md font-bold flex items-center gap-2 active:scale-90 transition-transform"><i class="fa-solid fa-play"></i> 播放</a>
-                    <button id="heroInfoBtn" class="bg-zinc-500/30 text-white px-10 py-3 rounded-md font-bold flex items-center gap-2 backdrop-blur-lg border border-white/10 active:scale-90 transition-transform"><i class="fa-solid fa-circle-info"></i> 詳情</button>
+            <img id="heroMainImg" src="" class="mb-8">
+            <div class="relative z-10 text-center pb-12 w-full px-6">
+                <h1 id="heroTitle" class="text-3xl font-black italic mb-6 tracking-tighter"></h1>
+                <div class="flex gap-3 justify-center">
+                    <button id="heroPlayBtn" class="bg-white text-black px-12 py-3 rounded font-bold text-sm flex-1 max-w-[150px]">播放</button>
+                    <button id="heroInfoBtn" class="bg-zinc-800 text-white px-8 py-3 rounded font-bold text-sm flex-1 max-w-[150px]">詳情</button>
                 </div>
             </div>
         </div>
-        <main id="mainRows" class="relative z-10 -mt-20 space-y-12 pb-16"></main>
+        <main id="mainRows" class="space-y-12 pt-4"></main>
     </div>
 
-    <div id="favPage" class="view-container bg-black pt-24 px-4">
-        <h2 class="text-3xl font-black italic mb-6 px-2 tracking-tighter text-zinc-200">FAVORITES</h2>
-        <div id="favResults" class="grid grid-cols-2 gap-4 pb-24 px-2"></div>
-        <div id="favEmpty" class="hidden flex flex-col items-center justify-center pt-32 text-zinc-800">
-            <i class="fa-solid fa-star text-6xl mb-4 opacity-10"></i>
-            <p class="font-bold tracking-widest uppercase text-[10px]">清單中尚無內容</p>
-        </div>
-    </div>
-
-    <div id="filterPage" class="view-container bg-black pt-24 px-4">
-        <div class="flex items-center justify-between mb-6 px-2">
-            <h2 class="text-3xl font-black italic tracking-tighter text-zinc-200">EXPLORE</h2>
-            <button onclick="toggleFilterDrawer()" class="flex items-center gap-2 bg-zinc-900 px-4 py-2 rounded-full border border-zinc-800 text-xs font-black tracking-widest text-zinc-400 active:scale-95 transition-all">
-                <i class="fa-solid fa-sliders"></i> <span id="filterSummary">篩選</span>
-                <i id="drawerArrow" class="fa-solid fa-chevron-down text-[10px] transition-transform duration-300"></i>
-            </button>
-        </div>
-        <div id="filterContent" class="max-h-0 opacity-0 bg-zinc-900/40 rounded-2xl border border-zinc-800/50 mb-6 backdrop-blur-md overflow-hidden">
-            <div class="p-5 space-y-6">
-                <div>
-                    <h3 class="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-3 ml-1">Categories</h3>
-                    <div id="catFilters" class="flex flex-wrap"></div>
-                </div>
-                <div>
-                    <h3 class="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-3 ml-1">Actors</h3>
-                    <div id="actorFilters" class="flex flex-wrap"></div>
-                </div>
-                <button onclick="resetFilters()" class="w-full py-3 text-[10px] font-black text-zinc-500 uppercase tracking-widest border-t border-zinc-800/50 pt-4">重置所有篩選</button>
-            </div>
-        </div>
-        <div id="filterResults" class="grid grid-cols-2 gap-4 pb-24 px-2"></div>
-    </div>
-
-    <div id="userPage" class="view-container bg-black pt-24 px-8 text-center">
-        <div class="w-20 h-20 bg-zinc-900 rounded-3xl mx-auto mb-6 flex items-center justify-center text-3xl font-bold border border-zinc-800 text-zinc-600">DB</div>
-        <h2 class="text-2xl font-bold mb-10 text-zinc-300">Settings</h2>
+    <div id="filterPage" class="page pt-20 px-6">
+        <h2 class="text-2xl font-black mb-8 italic">FILTER</h2>
         <div class="space-y-4">
-            <button onclick="document.getElementById('folderInput').click()" class="bg-white text-black text-[11px] font-black py-4 rounded-xl w-full uppercase tracking-widest shadow-lg">Load Media Folder</button>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800">
-                    <div class="text-zinc-600 text-[9px] font-black uppercase mb-1">Titles</div>
-                    <div id="statTotal" class="text-2xl font-black italic">0</div>
-                </div>
-                <div class="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800">
-                    <div class="text-zinc-600 text-[9px] font-black uppercase mb-1">Images</div>
-                    <div id="statImages" class="text-2xl font-black italic">0</div>
-                </div>
+            <div class="border-b border-zinc-900">
+                <button onclick="toggleFilterList('actorList')" class="w-full flex justify-between py-4 font-bold text-zinc-500 text-xs tracking-widest">ACTORS <i class="fa-solid fa-chevron-down"></i></button>
+                <div id="actorList" class="filter-content"></div>
             </div>
-            <button onclick="handleClearDatabase()" class="w-full text-red-900/80 text-[10px] font-black py-4 uppercase tracking-[0.3em] mt-8">Destructive Reset</button>
+            <div class="border-b border-zinc-900">
+                <button onclick="toggleFilterList('tagList')" class="w-full flex justify-between py-4 font-bold text-zinc-500 text-xs tracking-widest">TAGS <i class="fa-solid fa-chevron-down"></i></button>
+                <div id="tagList" class="filter-content"></div>
+            </div>
+        </div>
+        <div id="filterResults" class="grid grid-cols-2 gap-3 mt-8 pb-20"></div>
+    </div>
+
+    <div id="favPage" class="page pt-20 px-6">
+        <h2 class="text-2xl font-black mb-6 italic text-center">FAVORITES</h2>
+        <div id="favResults" class="grid grid-cols-2 gap-3"></div>
+    </div>
+
+    <div id="userPage" class="page pt-20 px-8">
+        <div class="space-y-4">
+            <button onclick="document.getElementById('txtInput').click()" class="w-full py-5 bg-zinc-900 rounded-xl font-bold border border-white/5">1. 載入路徑表 (.txt)</button>
+            <input type="file" id="txtInput" accept=".txt" class="hidden">
+            <button onclick="document.getElementById('folderInput').click()" class="w-full py-5 bg-blue-700 rounded-xl font-bold">2. 選擇媒體資料夾</button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden">
+            <button onclick="handleClearDatabase()" class="w-full text-zinc-800 text-[10px] font-black pt-20 tracking-[0.3em]">RESET DATABASE</button>
         </div>
     </div>
 
     <div id="detailView">
-        <div class="w-12 h-1.5 bg-zinc-700 rounded-full absolute top-3 left-1/2 -translate-x-1/2 z-50 opacity-30"></div>
-        <div class="relative aspect-netflix w-full">
-            <div id="detailBanner" class="w-full h-full bg-cover bg-center"></div>
-            <button onclick="closeDetail()" class="absolute top-8 right-4 bg-black/40 w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-xl border border-white/5">✕</button>
-        </div>
-        <div class="p-6 space-y-5">
-            <div>
-                <h2 id="detailTitle" class="text-3xl font-black tracking-tighter mb-1 leading-tight"></h2>
-                <span id="detailCategoryLabel" class="text-green-500 font-black tracking-widest uppercase text-xs"></span>
-            </div>
-            <div class="flex gap-3">
-                <a id="detailPlayBtn" href="#" target="_blank" class="flex-grow bg-white text-black py-3.5 rounded-md font-black flex items-center justify-center gap-2 active:scale-95 transition-all">
-                    <i class="fa-solid fa-play"></i> PLAY
-                </a>
-                <button onclick="toggleFavorite()" id="detailFavBtn" class="w-16 bg-zinc-900 text-zinc-500 rounded-md flex items-center justify-center text-xl active:scale-90 transition-all border border-white/5"><i class="fa-solid fa-star"></i></button>
-            </div>
+        <div id="detailHero"></div> <button onclick="closeDetail()" class="absolute top-8 right-6 bg-black/50 w-10 h-10 rounded-full z-[700] flex items-center justify-center">✕</button>
+        
+        <div class="p-6 relative">
+            <h2 id="detailTitle" class="text-4xl font-black italic mb-1 tracking-tighter"></h2>
+            <p id="detailActor" class="text-blue-500 font-bold mb-6 text-sm"></p>
             
-            <p id="detailActorLabel" class="text-[13px] text-zinc-500 leading-relaxed font-medium">
-                Actor: <span class="text-zinc-100 ml-1"></span>
-            </p>
-
-            <div class="border-t border-zinc-900 pt-6">
-                <div id="episodeGrid" class="grid grid-cols-2 gap-3"></div>
+            <div class="flex gap-3 mb-8">
+                <a id="detailPlayBtn" target="_blank" class="flex-grow bg-white text-black py-3.5 rounded font-black text-center text-sm">STREAM</a>
+                <button id="detailFavBtn" onclick="toggleFavorite()" class="w-16 bg-zinc-900 rounded flex items-center justify-center text-xl"><i class="fa-solid fa-star"></i></button>
             </div>
+
+            <div id="detailTags" class="flex flex-wrap gap-2 mb-10"></div>
+            <div id="episodeGrid" class="grid grid-cols-2 gap-2.5 pb-32"></div>
         </div>
     </div>
 
-    <div id="lightbox">
-        <div class="w-1/4 h-full left-0 absolute" onclick="changePhoto(-1)"></div>
-        <div class="w-1/2 h-full left-1/4 absolute" onclick="closeLightbox()"></div>
-        <div class="w-1/4 h-full left-3/4 absolute" onclick="changePhoto(1)"></div>
-        <img id="lightboxImg" src="" class="max-w-full max-h-full object-contain">
-        <div id="storyCounter" class="absolute bottom-12 text-zinc-600 text-[10px] font-black uppercase tracking-[0.4em]"></div>
-    </div>
-
-    <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden" onchange="handleUpload(this.files)">
-
-    <nav class="bottom-nav fixed bottom-0 w-full flex justify-around py-5 z-[160]">
-        <div onclick="switchPage('home')" class="flex flex-col items-center gap-1.5 text-[10px] nav-item text-white font-bold" id="navHome"><i class="fa-solid fa-house text-xl"></i><span>HOME</span></div>
-        <div onclick="switchPage('fav')" class="flex flex-col items-center gap-1.5 text-[10px] nav-item text-gray-500 font-bold" id="navFav"><i class="fa-solid fa-star text-xl"></i><span>FAVORITE</span></div>
-        <div onclick="switchPage('filter')" class="flex flex-col items-center gap-1.5 text-[10px] nav-item text-gray-500 font-bold" id="navFilter"><i class="fa-solid fa-filter text-xl"></i><span>CATEGORY</span></div>
-        <div onclick="switchPage('user')" class="flex flex-col items-center gap-1.5 text-[10px] nav-item text-gray-500 font-bold" id="navUser"><i class="fa-solid fa-database text-xl"></i><span>SETTINGS</span></div>
+    <nav class="bottom-nav">
+        <div onclick="switchPage('home')" class="nav-item active" id="navHome"><i class="fa-solid fa-house mb-1 text-lg"></i><span>首頁</span></div>
+        <div onclick="switchPage('filter')" class="nav-item" id="navFilter"><i class="fa-solid fa-magnifying-glass mb-1 text-lg"></i><span>篩選</span></div>
+        <div onclick="switchPage('fav')" class="nav-item" id="navFav"><i class="fa-solid fa-star mb-1 text-lg"></i><span>收藏</span></div>
+        <div onclick="switchPage('user')" class="nav-item" id="navUser"><i class="fa-solid fa-database mb-1 text-lg"></i><span>資料庫</span></div>
     </nav>
 
     <script>
-        let albums = {}, db, currentAlbum = null, currentPhotoIndex = 0;
-        let selectedCat=null, selectedActor=null, isDrawerOpen = false;
-        const STORE_NAME = "albums", DB_NAME = "StreamVaultDB";
+        let albums = {}, db, pathTable = [], currentAlbum = null, storyIndex = 0, currentGallery = [];
+        let activeFilter = { actor: null, tag: null };
+        const STORE_NAME = "albums", DB_NAME = "StreamVault_V6";
 
-        function initDB() {
-            const req = indexedDB.open(DB_NAME, 1);
-            req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME, {keyPath:"id"});
-            req.onsuccess = e => { db = e.target.result; loadFromDB(); };
-        }
-        initDB();
+        // --- 手勢下滑退出實作 ---
+        let touchStartY = 0;
+        const detailView = document.getElementById('detailView');
+
+        detailView.addEventListener('touchstart', e => {
+            if (detailView.scrollTop <= 0) touchStartY = e.touches[0].clientY;
+            else touchStartY = null;
+        }, {passive: true});
+
+        detailView.addEventListener('touchmove', e => {
+            if (touchStartY === null) return;
+            let diff = e.touches[0].clientY - touchStartY;
+            if (diff > 0) {
+                e.preventDefault();
+                detailView.style.transition = 'none';
+                detailView.style.transform = `translateY(${diff}px)`;
+            }
+        }, {passive: false});
+
+        detailView.addEventListener('touchend', e => {
+            if (touchStartY === null) return;
+            let diff = e.changedTouches[0].clientY - touchStartY;
+            if (diff > 150) closeDetail();
+            else {
+                detailView.style.transition = 'transform 0.3s cubic-bezier(0.1, 0.7, 0.1, 1)';
+                detailView.style.transform = 'translateY(0)';
+            }
+        });
+
+        // --- IndexedDB ---
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME, {keyPath:"id"});
+        req.onsuccess = e => { db = e.target.result; loadFromDB(); };
 
         async function loadFromDB() {
             const tx = db.transaction(STORE_NAME, "readonly");
             const res = await new Promise(r => tx.objectStore(STORE_NAME).get("main_data").onsuccess = e => r(e.target.result));
-            if (res) { albums = res.content; renderHome(); setupFilters(); updateStats(); renderFavorites(); }
+            if (res) { albums = res.content; initApp(); }
         }
 
-        function saveToDB() { db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).put({id:"main_data", content:albums}); }
-
-        // --- 動態生成搜尋網址 ---
-        function getSearchUrl(serial) {
-            const query = encodeURIComponent(serial + " missav");
-            return `https://www.google.com/search?q=${query}`;
+        function initApp() {
+            renderHome();
+            renderFavorites();
+            renderFilterResults();
         }
 
-        function toggleFilterDrawer() {
-            isDrawerOpen = !isDrawerOpen;
-            const content = document.getElementById('filterContent');
-            const arrow = document.getElementById('drawerArrow');
-            if(isDrawerOpen) { content.style.maxHeight = '500px'; content.style.opacity = '1'; arrow.style.transform = 'rotate(180deg)'; }
-            else { content.style.maxHeight = '0px'; content.style.opacity = '0'; arrow.style.transform = 'rotate(0deg)'; }
+        function switchPage(p) {
+            document.querySelectorAll('.page').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(p + 'Page').classList.add('active');
+            document.getElementById('nav' + p.charAt(0).toUpperCase() + p.slice(1)).classList.add('active');
+            if(p === 'filter') renderFilterPanels();
         }
 
-        function resetFilters() {
-            selectedCat = null; selectedActor = null;
-            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-            document.getElementById('filterSummary').innerText = "篩選";
-            applyFilter();
+        function toggleFilterList(id) {
+            document.getElementById(id).classList.toggle('open');
         }
 
-        let startY = 0;
-        const dv = document.getElementById('detailView');
-        dv.addEventListener('touchstart', e => { if(dv.scrollTop <= 0) { startY = e.touches[0].pageY; dv.style.transition = 'none'; } });
-        dv.addEventListener('touchmove', e => { 
-            const diff = e.touches[0].pageY - startY; 
-            if(dv.scrollTop <= 0 && diff > 0) { e.preventDefault(); dv.style.transform = `translateY(${diff}px)`; } 
-        });
-        dv.addEventListener('touchend', e => { 
-            const diff = e.changedTouches[0].pageY - startY; 
-            dv.style.transition = 'transform 0.4s cubic-bezier(0.19, 1, 0.22, 1)'; 
-            if(diff > 150) closeDetail(); else dv.style.transform = 'translateY(0)'; 
-        });
+        function renderFilterPanels() {
+            const actors = [...new Set(Object.values(albums).map(a => a.actor))];
+            const tags = [...new Set(Object.values(albums).flatMap(a => a.tags))];
+            document.getElementById('actorList').innerHTML = actors.map(a => `<button onclick="setFilter('actor', '${a}')" class="px-4 py-2 rounded-full border ${activeFilter.actor===a?'bg-white text-black':'border-zinc-800 text-zinc-500'} text-xs">${a}</button>`).join('');
+            document.getElementById('tagList').innerHTML = tags.map(t => `<button onclick="setFilter('tag', '${t}')" class="px-4 py-2 rounded-full border ${activeFilter.tag===t?'bg-white text-black':'border-zinc-800 text-zinc-500'} text-xs"># ${t}</button>`).join('');
+        }
+
+        function setFilter(type, val) {
+            activeFilter[type] = activeFilter[type] === val ? null : val;
+            renderFilterPanels();
+            renderFilterResults();
+        }
+
+        function renderFilterResults() {
+            let list = Object.values(albums);
+            if (activeFilter.actor) list = list.filter(a => a.actor === activeFilter.actor);
+            if (activeFilter.tag) list = list.filter(a => a.tags.includes(activeFilter.tag));
+            document.getElementById('filterResults').innerHTML = list.map(x => `<div onclick="openDetail('${x.serial}')" class="aspect-video bg-zinc-900 rounded overflow-hidden"><img src="${x.cover?.url}" class="w-full h-full object-cover"></div>`).join('');
+        }
+
+        function openDetail(s) {
+            currentAlbum = albums[s];
+            const dv = document.getElementById('detailView');
+            document.getElementById('detailHero').style.backgroundImage = `url(${currentAlbum.cover?.url})`;
+            document.getElementById('detailTitle').innerText = currentAlbum.serial;
+            document.getElementById('detailActor').innerText = currentAlbum.actor;
+            document.getElementById('detailTags').innerHTML = currentAlbum.tags.map(t => `<span class="bg-zinc-900 px-3 py-1 rounded text-[10px] text-zinc-400 border border-white/5"># ${t}</span>`).join('');
+            document.getElementById('detailPlayBtn').href = `https://www.google.com/search?q=${currentAlbum.serial}+missav`;
+            
+            // 劇照列表 (排除封面)
+            document.getElementById('episodeGrid').innerHTML = currentAlbum.contents.map((img, i) => `
+                <div class="aspect-video bg-zinc-900 rounded overflow-hidden" onclick="openStory(${i}, ${JSON.stringify(currentAlbum.contents).replace(/"/g, '&quot;')})">
+                    <img src="${img.url}" class="w-full h-full object-cover">
+                </div>
+            `).join('');
+            
+            dv.style.display = 'block';
+            setTimeout(() => { dv.style.transform = 'translateY(0)'; }, 10);
+            updateFavBtnUI();
+        }
+
+        function closeDetail() {
+            detailView.style.transform = 'translateY(100%)';
+            setTimeout(() => { detailView.style.display = 'none'; }, 400);
+        }
+
+        function renderHome() {
+            const main = document.getElementById('mainRows'); main.innerHTML = '';
+            const keys = Object.keys(albums);
+            if(!keys.length) return;
+            
+            const r = albums[keys[Math.floor(Math.random()*keys.length)]];
+            document.getElementById('heroBlurBg').style.backgroundImage = `url(${r.cover?.url})`;
+            document.getElementById('heroMainImg').src = r.cover?.url;
+            document.getElementById('heroTitle').innerText = r.serial;
+            document.getElementById('heroInfoBtn').onclick = () => openDetail(r.serial);
+
+            const cats = {};
+            Object.values(albums).forEach(v => { if(!cats[v.category]) cats[v.category] = []; cats[v.category].push(v); });
+            for(let c in cats) {
+                const sec = document.createElement('section');
+                sec.innerHTML = `<h2 class="px-6 text-[11px] font-black text-zinc-600 mb-4 tracking-widest uppercase">${c}</h2>
+                    <div class="flex overflow-x-auto gap-3 px-6 no-scrollbar">${cats[c].map(x => `<div onclick="openDetail('${x.serial}')" class="flex-shrink-0 w-44 aspect-video bg-zinc-900 rounded overflow-hidden border border-white/5 shadow-xl"><img src="${x.cover?.url}" class="w-full h-full object-cover"></div>`).join('')}</div>`;
+                main.appendChild(sec);
+            }
+        }
+
+        function openStory(index, imgs) {
+            currentGallery = imgs; storyIndex = index;
+            document.getElementById('storyOverlay').style.display = 'flex';
+            updateStory();
+        }
+
+        function closeStory() { document.getElementById('storyOverlay').style.display = 'none'; }
+
+        function handleStoryClick(e) {
+            const w = window.innerWidth;
+            if (e.clientX < w * 0.3) { if(storyIndex > 0) { storyIndex--; updateStory(); } }
+            else if (e.clientX > w * 0.7) { if(storyIndex < currentGallery.length-1) { storyIndex++; updateStory(); } }
+            else { closeStory(); }
+        }
+
+        function updateStory() {
+            document.getElementById('storyImg').src = currentGallery[storyIndex].url;
+            document.getElementById('storyProgress').innerHTML = currentGallery.map((_, i) => `<div class="h-1 flex-grow rounded-full ${i <= storyIndex ? 'bg-white' : 'bg-white/20'}"></div>`).join('');
+        }
 
         function toggleFavorite() {
-            if (!currentAlbum) return;
             currentAlbum.isFavorite = !currentAlbum.isFavorite;
-            updateFavBtnUI(currentAlbum.isFavorite);
-            saveToDB(); renderFavorites();
+            saveToDB(); updateFavBtnUI(); renderFavorites();
         }
 
-        function updateFavBtnUI(isFav) {
+        function updateFavBtnUI() {
             const btn = document.getElementById('detailFavBtn');
-            btn.className = `w-16 rounded-md flex items-center justify-center text-xl active:scale-90 transition-all border border-white/5 ${isFav ? 'bg-zinc-800 text-yellow-400' : 'bg-zinc-900 text-zinc-600'}`;
+            btn.innerHTML = `<i class="fa-solid fa-star ${currentAlbum.isFavorite ? 'text-yellow-400' : 'text-zinc-700'}"></i>`;
         }
 
         function renderFavorites() {
             const favs = Object.values(albums).filter(a => a.isFavorite);
-            const container = document.getElementById('favResults'), empty = document.getElementById('favEmpty');
-            if (favs.length === 0) { container.innerHTML = ''; empty.classList.remove('hidden'); }
-            else { empty.classList.add('hidden'); container.innerHTML = favs.map(a => `<div class="aspect-netflix rounded-xl overflow-hidden bg-zinc-900 shadow-xl" onclick="openDetail('${a.serial}')"><img src="${a.cover?.url}" class="w-full h-full object-cover"></div>`).join(''); }
+            document.getElementById('favResults').innerHTML = favs.map(x => `<div onclick="openDetail('${x.serial}')" class="aspect-video bg-zinc-900 rounded overflow-hidden"><img src="${x.cover?.url}" class="w-full h-full object-cover"></div>`).join('');
         }
 
-        async function handleUpload(files) {
+        document.getElementById('txtInput').onchange = async e => {
+            const text = await e.target.files[0].text();
+            pathTable = text.split('\n').map(l => {
+                const p = l.split('|').map(s => s.trim());
+                return p.length >= 3 ? { serial: p[0], actor: p[1], tags: p[2].split(',').map(t => t.trim()) } : null;
+            }).filter(Boolean);
+        };
+
+        document.getElementById('folderInput').onchange = async e => {
+            const files = e.target.files;
             const temp = {};
             for (let f of files) {
                 if (!f.type.startsWith('image/')) continue;
-                const p = f.webkitRelativePath.split('/');
-                if (p.length < 4) continue;
-                const cat=p[p.length-4], act=p[p.length-3], ser=p[p.length-2], name=p[p.length-1];
-                if (!temp[ser]) temp[ser] = { category:cat, actor:act, serial:ser, cover:null, contents:[], isFavorite: false };
-                const dataUrl = await new Promise(r => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(f); });
-                if (name.includes('封面')) temp[ser].cover = {url: dataUrl}; else temp[ser].contents.push({url: dataUrl});
+                const folderName = f.webkitRelativePath.split('/').slice(-2, -1)[0];
+                const meta = pathTable.find(m => m.serial === folderName);
+                if (!meta) continue;
+                if (!temp[folderName]) temp[folderName] = { ...meta, category: meta.tags[0], cover: null, contents: [], isFavorite: false };
+                const url = await new Promise(r => { const rd = new FileReader(); rd.onload = e => r(e.target.result); rd.readAsDataURL(f); });
+                if (f.name.includes('封面')) temp[folderName].cover = {url};
+                else temp[folderName].contents.push({url});
             }
-            albums = temp; saveToDB(); renderHome(); setupFilters(); updateStats(); switchPage('home');
-        }
+            albums = temp; saveToDB(); initApp(); switchPage('home');
+        };
 
-        function switchPage(p) {
-            document.querySelectorAll('.view-container').forEach(v=>v.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i=>i.classList.replace('text-white','text-gray-500'));
-            document.getElementById(p+'Page').classList.add('active');
-            document.getElementById('nav'+p.charAt(0).toUpperCase()+p.slice(1)).classList.replace('text-gray-500','text-white');
-            window.scrollTo(0,0);
-        }
-
-        function openDetail(s) {
-            currentAlbum=albums[s];
-            document.getElementById('detailBanner').style.backgroundImage=`url(${currentAlbum.cover?.url})`;
-            document.getElementById('detailTitle').innerText=currentAlbum.serial;
-            document.getElementById('detailCategoryLabel').innerText = currentAlbum.category;
-            document.getElementById('detailActorLabel').querySelector('span').innerText=currentAlbum.actor;
-            
-            // 更新詳情頁播放按鈕的連結
-            document.getElementById('detailPlayBtn').href = getSearchUrl(currentAlbum.serial);
-            
-            updateFavBtnUI(currentAlbum.isFavorite);
-            document.getElementById('episodeGrid').innerHTML = currentAlbum.contents.map((img, i) => `<div class="aspect-netflix rounded-lg overflow-hidden bg-zinc-900 shadow-lg" onclick="openLightbox(${i})"><img src="${img.url}" class="w-full h-full object-cover"></div>`).join('');
-            dv.style.display='block'; setTimeout(()=>{ dv.style.transform='translateY(0)'; }, 10); document.body.style.overflow='hidden';
-        }
-        
-        function closeDetail() { dv.style.transform='translateY(100%)'; setTimeout(()=>{ dv.style.display='none'; document.body.style.overflow='auto'; }, 450); }
-        function openLightbox(i) { currentPhotoIndex=i; document.getElementById('lightboxImg').src=currentAlbum.contents[i].url; document.getElementById('lightbox').classList.add('active'); document.getElementById('storyCounter').innerText = `${i+1} / ${currentAlbum.contents.length}`; }
-        function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
-        function changePhoto(d) { currentPhotoIndex=(currentPhotoIndex+d+currentAlbum.contents.length)%currentAlbum.contents.length; document.getElementById('lightboxImg').src=currentAlbum.contents[currentPhotoIndex].url; document.getElementById('storyCounter').innerText = `${currentPhotoIndex+1} / ${currentAlbum.contents.length}`; }
-
-        function setupFilters() { 
-            const cats=[...new Set(Object.values(albums).map(a=>a.category))], acts=[...new Set(Object.values(albums).map(a=>a.actor))];
-            document.getElementById('catFilters').innerHTML=cats.map(c=>`<div class="filter-chip" onclick="selectChip('cat','${c}',this)">${c}</div>`).join('');
-            document.getElementById('actorFilters').innerHTML=acts.map(a=>`<div class="filter-chip" onclick="selectChip('actor','${a}',this)">${a}</div>`).join('');
-            applyFilter();
-        }
-        function selectChip(t,v,el){ 
-            if(t==='cat'){ if(selectedCat===v){selectedCat=null;el.classList.remove('active');} else{document.querySelectorAll('#catFilters .filter-chip').forEach(c=>c.classList.remove('active'));selectedCat=v;el.classList.add('active');} }
-            else { if(selectedActor===v){selectedActor=null;el.classList.remove('active');} else{document.querySelectorAll('#actorFilters .filter-chip').forEach(c=>c.classList.remove('active'));selectedActor=v;el.classList.add('active');} } 
-            document.getElementById('filterSummary').innerText = `${selectedCat || ''} ${selectedActor || ''}`.trim() || "篩選";
-            applyFilter(); 
-        }
-        function applyFilter(){ const res=Object.values(albums).filter(a=>(selectedCat?a.category===selectedCat:true)&&(selectedActor?a.actor===selectedActor:true)); document.getElementById('filterResults').innerHTML=res.map(a=>`<div class="aspect-netflix rounded-xl overflow-hidden bg-zinc-900 shadow-xl" onclick="openDetail('${a.serial}')"><img src="${a.cover?.url}" class="w-full h-full object-cover"></div>`).join(''); }
-        function updateStats(){ const k=Object.keys(albums); document.getElementById('statTotal').innerText=k.length; let c=0; k.forEach(x=>c+=albums[x].contents.length); document.getElementById('statImages').innerText=c; }
-        
-        function renderHome() {
-            const main = document.getElementById('mainRows'); main.innerHTML = '';
-            const groups = {}; Object.values(albums).forEach(a => { if(!groups[a.category]) groups[a.category]=[]; groups[a.category].push(a); });
-            const keys = Object.keys(albums);
-            if(keys.length > 0) {
-                const a = albums[keys[Math.floor(Math.random()*keys.length)]];
-                document.getElementById('heroBlurBg').style.backgroundImage = `url(${a.cover?.url})`;
-                document.getElementById('heroMainImg').src = a.cover?.url;
-                document.getElementById('heroTitle').innerText = a.serial;
-                document.getElementById('heroActor').innerText = a.actor;
-                // 更新英雄區播放連結
-                document.getElementById('heroPlayBtn').href = getSearchUrl(a.serial);
-                document.getElementById('heroInfoBtn').onclick = () => openDetail(a.serial);
-            }
-            for (let cat in groups) {
-                const sec = document.createElement('section');
-                sec.innerHTML = `<h2 class="px-6 text-xs font-black text-zinc-500 mb-4 uppercase tracking-[0.2em]">${cat}</h2><div class="row-container">${groups[cat].map(a => `<div class="flex-shrink-0 w-44 aspect-netflix rounded-lg overflow-hidden bg-zinc-900 shadow-2xl" onclick="openDetail('${a.serial}')"><img src="${a.cover?.url}" class="w-full h-full object-cover"></div>`).join('')}</div>`;
-                main.appendChild(sec);
-            }
-        }
-        function handleClearDatabase() { if(confirm("⚠️ 確定要永久清空資料庫嗎？")) { if (db) db.close(); const dReq = indexedDB.deleteDatabase(DB_NAME); dReq.onsuccess = () => { alert("資料庫已清空"); location.reload(); }; } }
-
-        window.addEventListener('scroll', () => {
-            if (!document.getElementById('homePage').classList.contains('active')) return;
-            const y = window.scrollY;
-            const cover = document.getElementById('heroCoverWrapper');
-            const blur = document.getElementById('heroBlurBg');
-            if (y < 0) { cover.style.transform = `scale(${1 + (Math.abs(y) / 550)})`; blur.style.transform = `scale(${1.3 + Math.abs(y)/800})`; }
-            else { cover.style.transform = `scale(${Math.max(0.75, 1 - (y / 1200))}) translateY(${y * -0.1}px)`; cover.style.opacity = Math.max(0, 1 - (y / 500)); blur.style.transform = `translateY(${y * 0.45}px) scale(1.3)`; }
-        });
+        function saveToDB() { db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).put({id:"main_data", content:albums}); }
+        function handleClearDatabase() { if(confirm("確定重設系統？")) { indexedDB.deleteDatabase(DB_NAME); location.reload(); } }
     </script>
 </body>
 </html>
